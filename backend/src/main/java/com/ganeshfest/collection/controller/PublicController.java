@@ -262,14 +262,14 @@ public class PublicController {
     @GetMapping("/years/{year}/programs")
     public List<Program> programs(@PathVariable Integer year) {
         FestivalYear fy = getYearOrThrow(year);
-        return programRepo.findByFestivalYearIdOrderByIdAsc(fy.getId());
+        return programRepo.findWithFestivalDayByFestivalYearId(fy.getId());
     }
 
     // ---- Annadanam sponsors ----
     @GetMapping("/years/{year}/annadanam-sponsors")
     public List<AnnadanamSponsor> annadanamSponsors(@PathVariable Integer year) {
         FestivalYear fy = getYearOrThrow(year);
-        return annadanamRepo.findByFestivalYearIdOrderByFestivalDayIdAsc(fy.getId());
+        return annadanamRepo.findWithFestivalDayByFestivalYearId(fy.getId());
     }
 
     // ---- General sponsors ----
@@ -291,5 +291,46 @@ public class PublicController {
     public List<FestivalDay> dayList(@PathVariable Integer year) {
         FestivalYear fy = getYearOrThrow(year);
         return dayRepo.findByFestivalYearIdOrderByDayNumberAsc(fy.getId());
+    }
+
+    // ---- Festival Days overview - click-through from the "Festival Days" stat
+    // card. For each registered day of the festival (however many there are -
+    // 3, 5, 11, whatever the committee decided), shows the programs happening
+    // that day and who's sponsoring annadanam that day, in one place. ----
+    @GetMapping("/years/{year}/festival-days-overview")
+    public List<FestivalDayOverviewDto> festivalDaysOverview(@PathVariable Integer year) {
+        FestivalYear fy = getYearOrThrow(year);
+        List<FestivalDay> days = dayRepo.findByFestivalYearIdOrderByDayNumberAsc(fy.getId());
+
+        return days.stream().map(day -> {
+            List<ProgramSummaryDto> programs = programRepo.findByFestivalDayIdOrderByIdAsc(day.getId()).stream()
+                    .map(p -> ProgramSummaryDto.builder()
+                            .id(p.getId())
+                            .name(p.getName())
+                            .description(p.getDescription())
+                            .timeSlot(p.getTimeSlot())
+                            .build())
+                    .collect(Collectors.toList());
+
+            List<AnnadanamSummaryDto> sponsors = annadanamRepo.findByFestivalDayIdOrderByIdAsc(day.getId()).stream()
+                    .map(a -> AnnadanamSummaryDto.builder()
+                            .id(a.getId())
+                            .sponsorName(a.getSponsorName())
+                            .contact(a.getContact())
+                            .mealCount(a.getMealCount())
+                            .amount(a.getAmount())
+                            .notes(a.getNotes())
+                            .build())
+                    .collect(Collectors.toList());
+
+            return FestivalDayOverviewDto.builder()
+                    .dayId(day.getId())
+                    .date(day.getDate())
+                    .dayNumber(day.getDayNumber())
+                    .label(day.getLabel())
+                    .programs(programs)
+                    .annadanamSponsors(sponsors)
+                    .build();
+        }).collect(Collectors.toList());
     }
 }

@@ -168,3 +168,34 @@ POST /api/admin/velam-items/upload-image  (multipart file upload)
   you need them to survive redeploys).
 - No pagination — fine for a few hundred donation entries per festival; revisit
   if this grows to thousands of rows per day.
+
+## Fix log (2026-08-19/20)
+
+**Programs/Annadanam day & date not showing on the public site:** caused by
+the earlier global Hibernate-proxy fix (JacksonConfig) - it stops the app
+from crashing on lazy-loaded entity references, but by default it also
+silently serializes any lazy reference that wasn't explicitly loaded as
+`null`. `Program.festivalDay` and `AnnadanamSponsor.festivalDay` were
+exactly that case. Fixed by adding `LEFT JOIN FETCH` to the repository
+queries behind `/api/public/years/{year}/programs` and
+`/api/public/years/{year}/annadanam-sponsors`, so `festivalDay` (and its
+`.date` / `.dayNumber`) is loaded before the response is built, not after.
+
+**Velam paata images not showing:** `app.upload.dir` was a relative path
+(`uploads/velam-items`), which resolves against whatever directory the JVM
+happens to be launched from - this can silently differ between running via
+`mvn spring-boot:run`, an IDE run configuration, or a packaged jar, so a
+photo uploaded during one run can become unreachable after a restart under
+a different working directory. Fixed by making it an absolute path under
+`${user.home}/ganesh-fest-uploads/velam-items`, which is identical no
+matter how the app is launched. **One-time consequence: any velam item
+photos uploaded before this fix now point to files that may not exist at
+the new location — re-upload those specific items' photos once, going
+forward this can't happen again.** The app also now prints the resolved
+upload path on every boot, so you can always confirm exactly where photos
+are being read from/written to.
+
+**Festival Days overview card:** already built by the committee in
+`Dashboard.jsx` (the days modal) - it was blocked by the same `festivalDay`
+serialization bug above, and starts working now that the backend actually
+returns the data it expects.
