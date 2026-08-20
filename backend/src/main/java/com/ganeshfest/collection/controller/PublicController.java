@@ -286,6 +286,46 @@ public class PublicController {
         return velamRepo.findByFestivalYearIdOrderByIdAsc(fy.getId());
     }
 
+    // ---- Donor / Sponsor leaderboard - public recognition, opt-in only.
+    // Combines named Sponsors (isPublic=true, has an amount) with donors from
+    // the Collections book (isPublic=true entries, summed per donor name so
+    // someone who gave chanda across several days shows up once with their
+    // total), sorted by amount descending. ----
+    @GetMapping("/years/{year}/leaderboard")
+    public List<LeaderboardEntryDto> leaderboard(@PathVariable Integer year) {
+        FestivalYear fy = getYearOrThrow(year);
+
+        List<LeaderboardEntryDto> sponsorEntries = sponsorRepo.findByFestivalYearIdOrderByIdAsc(fy.getId()).stream()
+                .filter(s -> Boolean.TRUE.equals(s.getIsPublic()) && s.getAmount() != null)
+                .map(s -> LeaderboardEntryDto.builder()
+                        .name(s.getSponsorName())
+                        .amount(s.getAmount())
+                        .type("Sponsor")
+                        .category(s.getCategory())
+                        .build())
+                .collect(Collectors.toList());
+
+        java.util.Map<String, BigDecimal> donorTotals = new java.util.LinkedHashMap<>();
+        collectionRepo.findByFestivalYearIdOrderByTransactionDateDescCreatedAtDesc(fy.getId()).stream()
+                .filter(c -> Boolean.TRUE.equals(c.getIsPublic()))
+                .forEach(c -> donorTotals.merge(c.getDonorName(), c.getAmount(), BigDecimal::add));
+
+        List<LeaderboardEntryDto> donorEntries = donorTotals.entrySet().stream()
+                .map(en -> LeaderboardEntryDto.builder()
+                        .name(en.getKey())
+                        .amount(en.getValue())
+                        .type("Donor")
+                        .category(null)
+                        .build())
+                .collect(Collectors.toList());
+
+        List<LeaderboardEntryDto> combined = new java.util.ArrayList<>();
+        combined.addAll(sponsorEntries);
+        combined.addAll(donorEntries);
+        combined.sort(Comparator.comparing(LeaderboardEntryDto::getAmount).reversed());
+        return combined;
+    }
+
     // ---- Days list for a year (used by admin dropdowns too, harmless to expose) ----
     @GetMapping("/years/{year}/day-list")
     public List<FestivalDay> dayList(@PathVariable Integer year) {

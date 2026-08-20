@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface VelamItemRepository extends JpaRepository<VelamItem, Long> {
     List<VelamItem> findByFestivalYearIdOrderByIdAsc(Long festivalYearId);
+
+    long countByFestivalYearId(Long festivalYearId);
 }

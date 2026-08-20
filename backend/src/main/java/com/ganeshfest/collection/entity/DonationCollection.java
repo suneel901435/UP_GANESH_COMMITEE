@@ -53,6 +53,12 @@ public class DonationCollection {
 
     private String notes;
 
+    // Opt-in flag: whether this donor consents to appearing on the public
+    // donor leaderboard / recognition page. Defaults to true; committee can
+    // untick it per-entry for donors who prefer to stay anonymous.
+    @Builder.Default
+    private Boolean isPublic = true;
+
     private String createdBy;
 
     @Builder.Default

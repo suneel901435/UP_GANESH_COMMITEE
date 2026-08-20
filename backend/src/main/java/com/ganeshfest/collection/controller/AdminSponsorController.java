@@ -5,6 +5,7 @@ import com.ganeshfest.collection.entity.Sponsor;
 import com.ganeshfest.collection.repository.FestivalYearRepository;
 import com.ganeshfest.collection.repository.SponsorRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,10 +27,11 @@ public class AdminSponsorController {
         public java.math.BigDecimal amount;
         public String contact;
         public String notes;
+        public Boolean isPublic; // opt-in flag for the public donor leaderboard
     }
 
     @PostMapping
-    public ResponseEntity<Sponsor> create(@RequestBody SponsorRequest req) {
+    public ResponseEntity<Sponsor> create(@RequestBody SponsorRequest req, Authentication auth) {
         FestivalYear fy = yearRepo.findById(req.festivalYearId).orElseThrow(() -> new RuntimeException("Year not found"));
         Sponsor s = Sponsor.builder()
                 .festivalYear(fy)
@@ -38,6 +40,8 @@ public class AdminSponsorController {
                 .amount(req.amount)
                 .contact(req.contact)
                 .notes(req.notes)
+                .isPublic(req.isPublic == null || req.isPublic)
+                .createdBy(auth != null ? auth.getName() : "admin")
                 .build();
         return ResponseEntity.ok(sponsorRepo.save(s));
     }
@@ -50,6 +54,7 @@ public class AdminSponsorController {
         s.setAmount(req.amount);
         s.setContact(req.contact);
         s.setNotes(req.notes);
+        if (req.isPublic != null) s.setIsPublic(req.isPublic);
         return ResponseEntity.ok(sponsorRepo.save(s));
     }
 

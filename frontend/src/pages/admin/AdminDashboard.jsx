@@ -10,8 +10,10 @@ const tiles = [
   { to: '/admin/programs', label: 'Programs', icon: '🎭', desc: 'Cultural programs & events' },
   { to: '/admin/annadanam', label: 'Annadanam Sponsors', icon: '🍛', desc: 'Who sponsors meals, which day' },
   { to: '/admin/sponsors', label: 'Sponsors', icon: '🤝', desc: 'General sponsors' },
+  { to: '/admin/sponsor-categories', label: 'Sponsor Categories', icon: '🏷️', desc: 'Manage category dropdown options' },
   { to: '/admin/velam-items', label: 'Velam Paata Items', icon: '🏺', desc: 'Auction items, prices, buyers' },
   { to: '/admin/loans', label: 'Village Lending (Vaddi)', icon: '💵', desc: 'Loans to villagers, interest tracking' },
+  { to: '/admin/audit', label: 'Audit Trail', icon: '🕵️', desc: 'Who added what, and when' },
 ]
 
 export default function AdminDashboard() {

@@ -11,6 +11,7 @@ import AnnadanamSponsors from './pages/AnnadanamSponsors'
 import Sponsors from './pages/Sponsors'
 import VelamPaata from './pages/VelamPaata'
 import PastYears from './pages/PastYears'
+import Leaderboard from './pages/Leaderboard'
 
 import Login from './pages/admin/Login'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -19,9 +20,11 @@ import ManageCollections from './pages/admin/ManageCollections'
 import ManageExpenses from './pages/admin/ManageExpenses'
 import ManagePrograms from './pages/admin/ManagePrograms'
 import ManageSponsors from './pages/admin/ManageSponsors'
+import ManageSponsorCategories from './pages/admin/ManageSponsorCategories'
 import ManageAnnadanam from './pages/admin/ManageAnnadanam'
 import ManageVelamItems from './pages/admin/ManageVelamItems'
 import ManageLoans from './pages/admin/ManageLoans'
+import AuditLog from './pages/admin/AuditLog'
 
 export default function App() {
   return (
@@ -38,6 +41,7 @@ export default function App() {
           <Route path="/sponsors" element={<Sponsors />} />
           <Route path="/velam" element={<VelamPaata />} />
           <Route path="/past-years" element={<PastYears />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
 
           {/* Admin */}
           <Route path="/admin/login" element={<Login />} />
@@ -47,9 +51,11 @@ export default function App() {
           <Route path="/admin/expenses" element={<ProtectedRoute><ManageExpenses /></ProtectedRoute>} />
           <Route path="/admin/programs" element={<ProtectedRoute><ManagePrograms /></ProtectedRoute>} />
           <Route path="/admin/sponsors" element={<ProtectedRoute><ManageSponsors /></ProtectedRoute>} />
+          <Route path="/admin/sponsor-categories" element={<ProtectedRoute><ManageSponsorCategories /></ProtectedRoute>} />
           <Route path="/admin/annadanam" element={<ProtectedRoute><ManageAnnadanam /></ProtectedRoute>} />
           <Route path="/admin/velam-items" element={<ProtectedRoute><ManageVelamItems /></ProtectedRoute>} />
           <Route path="/admin/loans" element={<ProtectedRoute><ManageLoans /></ProtectedRoute>} />
+          <Route path="/admin/audit" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
         </Routes>
       </div>
     </div>

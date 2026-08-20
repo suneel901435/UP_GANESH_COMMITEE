@@ -2,8 +2,7 @@ package com.ganeshfest.collection.controller;
 
 import com.ganeshfest.collection.entity.FestivalDay;
 import com.ganeshfest.collection.entity.FestivalYear;
-import com.ganeshfest.collection.repository.FestivalDayRepository;
-import com.ganeshfest.collection.repository.FestivalYearRepository;
+import com.ganeshfest.collection.repository.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,10 +20,25 @@ public class AdminSetupController {
 
     private final FestivalYearRepository yearRepo;
     private final FestivalDayRepository dayRepo;
+    private final SponsorRepository sponsorRepo;
+    private final DonationCollectionRepository collectionRepo;
+    private final ExpenseRepository expenseRepo;
+    private final ProgramRepository programRepo;
+    private final AnnadanamSponsorRepository annadanamRepo;
+    private final VelamItemRepository velamRepo;
 
-    public AdminSetupController(FestivalYearRepository yearRepo, FestivalDayRepository dayRepo) {
+    public AdminSetupController(FestivalYearRepository yearRepo, FestivalDayRepository dayRepo,
+                                 SponsorRepository sponsorRepo, DonationCollectionRepository collectionRepo,
+                                 ExpenseRepository expenseRepo, ProgramRepository programRepo,
+                                 AnnadanamSponsorRepository annadanamRepo, VelamItemRepository velamRepo) {
         this.yearRepo = yearRepo;
         this.dayRepo = dayRepo;
+        this.sponsorRepo = sponsorRepo;
+        this.collectionRepo = collectionRepo;
+        this.expenseRepo = expenseRepo;
+        this.programRepo = programRepo;
+        this.annadanamRepo = annadanamRepo;
+        this.velamRepo = velamRepo;
     }
 
     @PostMapping("/years")
@@ -42,6 +56,40 @@ public class AdminSetupController {
             fy.setOpeningBalance(updated.getOpeningBalance());
         }
         return ResponseEntity.ok(yearRepo.save(fy));
+    }
+
+    /**
+     * Deletes a festival year - only when it's genuinely empty. Sponsors,
+     * collections, expenses, programs, annadanam sponsors, and velam items
+     * all hold a required (non-null) FK back to festivalYear with no cascade
+     * configured on that side, so deleting a year that still has any of
+     * these would otherwise fail with a raw SQL foreign-key error. Refusing
+     * up front with a clear message is far friendlier than that. Festival
+     * days themselves DO cascade (see FestivalYear.days) and are deleted
+     * automatically along with the year.
+     */
+    @DeleteMapping("/years/{id}")
+    public ResponseEntity<?> deleteYear(@PathVariable Long id) {
+        FestivalYear fy = yearRepo.findById(id).orElseThrow(() -> new RuntimeException("Year not found"));
+
+        long sponsors = sponsorRepo.countByFestivalYearId(id);
+        long collections = collectionRepo.countByFestivalYearId(id);
+        long expenses = expenseRepo.countByFestivalYearId(id);
+        long programs = programRepo.countByFestivalYearId(id);
+        long annadanam = annadanamRepo.countByFestivalYearId(id);
+        long velamItems = velamRepo.countByFestivalYearId(id);
+        long total = sponsors + collections + expenses + programs + annadanam + velamItems;
+
+        if (total > 0) {
+            throw new RuntimeException(
+                    "Can't delete " + fy.getYear() + " - it still has " + total + " record(s) "
+                    + "(sponsors: " + sponsors + ", collections: " + collections + ", expenses: " + expenses
+                    + ", programs: " + programs + ", annadanam sponsors: " + annadanam + ", velam items: " + velamItems
+                    + "). Delete or move those first.");
+        }
+
+        yearRepo.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 
     // Plain request shape with an explicit festivalYearId - not a nested

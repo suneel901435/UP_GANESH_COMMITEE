@@ -17,4 +17,6 @@ public interface AnnadanamSponsorRepository extends JpaRepository<AnnadanamSpons
 
     // Used by the Festival Days overview to pull sponsors for one specific day
     List<AnnadanamSponsor> findByFestivalDayIdOrderByIdAsc(Long festivalDayId);
+
+    long countByFestivalYearId(Long festivalYearId);
 }

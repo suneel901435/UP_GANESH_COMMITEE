@@ -31,4 +31,15 @@ public class Sponsor {
     private String contact;
 
     private String notes;
+
+    // Opt-in flag: whether this sponsor consents to appearing on the public
+    // donor leaderboard / recognition page. Defaults to true so existing rows
+    // (and normal new entries) show up unless an admin explicitly hides them.
+    @Builder.Default
+    private Boolean isPublic = true;
+
+    private String createdBy;
+
+    @Builder.Default
+    private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
 }

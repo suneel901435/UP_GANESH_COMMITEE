@@ -32,4 +32,6 @@ public interface DonationCollectionRepository extends JpaRepository<DonationColl
 
     @Query("SELECT COALESCE(SUM(c.amount), 0) FROM DonationCollection c WHERE c.festivalYear.id = :yearId AND c.transactionDate = :date")
     BigDecimal sumByYearIdAndDate(@Param("yearId") Long yearId, @Param("date") LocalDate date);
+
+    long countByFestivalYearId(Long festivalYearId);
 }

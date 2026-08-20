@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api/axios'
 import { useYear } from '../context/YearContext'
+import DashboardCharts from '../components/DashboardCharts'
+import { useLanguage } from '../context/LanguageContext'
 
 function money(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`
@@ -9,6 +11,7 @@ function money(n) {
 
 export default function Dashboard() {
   const { selectedYear, loading: yearLoading } = useYear()
+  const { t } = useLanguage()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -120,24 +123,24 @@ export default function Dashboard() {
                 <span>Active Festival Year • {selectedYear}</span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-xs">
-                Ganesh Chaturthi Utsav
+                {t('ganeshChaturthiUtsav')}
               </h1>
               <p className="text-orange-100 text-xs sm:text-sm max-w-xl font-medium leading-relaxed">
-                Live devotional transparent dashboard tracking collections, daily ledger, seva offerings, and committee treasury.
+                {t('dashboardTagline')}
               </p>
             </div>
 
             {/* Cash in Hand Glass Card */}
             <div className="bg-white/15 backdrop-blur-md border border-white/30 rounded-2xl p-5 text-left lg:text-right shrink-0 shadow-lg">
               <span className="text-[11px] uppercase font-bold tracking-widest text-orange-200 block">
-                Cash in Hand
+                {t('cashInHand')}
               </span>
               <span className="text-3xl sm:text-4xl font-black text-white block mt-1 tracking-tight">
                 {money(data.cashInHand)}
               </span>
               {data.fundAvailable != null && (
                 <span className="text-xs text-orange-100/90 font-medium block mt-1">
-                  Total Fund: <strong className="text-white font-bold">{money(data.fundAvailable)}</strong>
+                  {t('totalFund')}: <strong className="text-white font-bold">{money(data.fundAvailable)}</strong>
                 </span>
               )}
             </div>
@@ -154,7 +157,7 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-xs font-extrabold text-emerald-800 uppercase tracking-wider block">
-                  Total Collections
+                  {t('totalCollections')}
                 </span>
                 <p className="text-3xl sm:text-4xl font-black text-emerald-700 mt-1 tracking-tight">
                   {money(data.totalCollection)}
@@ -179,7 +182,7 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-xs font-extrabold text-red-800 uppercase tracking-wider block">
-                  Total Expenses
+                  {t('totalExpenses')}
                 </span>
                 <p className="text-3xl sm:text-4xl font-black text-red-600 mt-1 tracking-tight">
                   {money(data.totalExpense)}
@@ -275,9 +278,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div className="bg-white rounded-3xl border border-orange-100/80 p-6 shadow-xs flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-xs font-extrabold text-gray-400 uppercase tracking-wider block">Devotees & Donors</span>
+              <span className="text-xs font-extrabold text-gray-400 uppercase tracking-wider block">{t('devoteesAndDonors')}</span>
               <p className="text-3xl sm:text-4xl font-black text-gray-900">{data.totalDonors || 0}</p>
-              <p className="text-xs text-orange-600 font-semibold">Generous festival contributors</p>
+              <p className="text-xs text-orange-600 font-semibold">{t('generousContributors')}</p>
             </div>
             <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center text-2xl shrink-0">
               👥
@@ -290,12 +293,12 @@ export default function Dashboard() {
             className="group bg-gradient-to-br from-white via-orange-50/20 to-orange-50/40 rounded-3xl border-2 border-orange-200 hover:border-orange-500 p-6 shadow-xs hover:shadow-md cursor-pointer transition-all duration-200 flex items-center justify-between relative overflow-hidden"
           >
             <div className="space-y-1 relative z-10">
-              <span className="text-xs font-extrabold text-orange-800 uppercase tracking-wider block">Celebration Duration</span>
+              <span className="text-xs font-extrabold text-orange-800 uppercase tracking-wider block">{t('celebrationDuration')}</span>
               <p className="text-3xl sm:text-4xl font-black text-orange-600 group-hover:text-orange-700">
-                {data.daysCount || 0} <span className="text-xl font-bold text-gray-700">Days</span>
+                {data.daysCount || 0} <span className="text-xl font-bold text-gray-700">{t('days')}</span>
               </p>
               <p className="text-xs text-orange-700 font-bold group-hover:underline flex items-center gap-1.5 pt-0.5">
-                <span>View day-wise sponsors & programs</span>
+                <span>{t('viewDaySchedule')}</span>
                 <span className="text-base group-hover:translate-x-1 transition-transform">→</span>
               </p>
             </div>
@@ -304,6 +307,9 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Charts: day-wise trend + expense breakdown */}
+        <DashboardCharts year={selectedYear} />
 
         {/* Quick Navigation Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
@@ -345,6 +351,16 @@ export default function Dashboard() {
               🙏
             </div>
             <span>Sponsors</span>
+          </Link>
+
+          <Link
+            to="/leaderboard"
+            className="bg-white hover:bg-gradient-to-br hover:from-orange-500 hover:to-amber-500 hover:text-white border border-orange-200/80 text-gray-800 rounded-3xl p-5 text-center font-black text-sm shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center gap-2.5 group"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 group-hover:bg-white/20 group-hover:text-white flex items-center justify-center text-2xl transition-all">
+              🏆
+            </div>
+            <span>Donor Leaderboard</span>
           </Link>
         </div>
 

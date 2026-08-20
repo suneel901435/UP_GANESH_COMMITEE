@@ -8,17 +8,20 @@ function money(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`
 }
 
+const emptyLoanForm = {
+  borrowerName: '', borrowerContact: '', principalAmount: '',
+  interestRatePercent: '2', interestPeriodNote: 'per month',
+  loanDate: today(), notes: '',
+}
+
 export default function ManageLoans() {
   const [loans, setLoans] = useState([])
   const [msg, setMsg] = useState('')
   const [expandedId, setExpandedId] = useState(null)
   const [repayments, setRepayments] = useState({})
+  const [editingId, setEditingId] = useState(null)
 
-  const [form, setForm] = useState({
-    borrowerName: '', borrowerContact: '', principalAmount: '',
-    interestRatePercent: '2', interestPeriodNote: 'per month',
-    loanDate: today(), notes: '',
-  })
+  const [form, setForm] = useState(emptyLoanForm)
 
   const [repayForm, setRepayForm] = useState({ paymentDate: today(), principalPaid: '', interestPaid: '', notes: '' })
 
@@ -27,11 +30,31 @@ export default function ManageLoans() {
   }
   useEffect(loadLoans, [])
 
+  const startEdit = (loan) => {
+    setEditingId(loan.id)
+    setForm({
+      borrowerName: loan.borrowerName || '',
+      borrowerContact: loan.borrowerContact || '',
+      principalAmount: loan.principalAmount ?? '',
+      interestRatePercent: loan.interestRatePercent ?? '2',
+      interestPeriodNote: loan.interestPeriodNote || 'per month',
+      loanDate: loan.loanDate || today(),
+      notes: loan.notes || '',
+    })
+    setMsg('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setForm(emptyLoanForm)
+  }
+
   const submitLoan = async (e) => {
     e.preventDefault()
     setMsg('')
     try {
-      await api.post('/admin/loans', {
+      const payload = {
         borrowerName: form.borrowerName,
         borrowerContact: form.borrowerContact,
         principalAmount: Number(form.principalAmount),
@@ -39,8 +62,13 @@ export default function ManageLoans() {
         interestPeriodNote: form.interestPeriodNote,
         loanDate: form.loanDate,
         notes: form.notes,
-      })
-      setForm({ ...form, borrowerName: '', borrowerContact: '', principalAmount: '', notes: '' })
+      }
+      if (editingId) {
+        await api.put(`/admin/loans/${editingId}`, payload)
+      } else {
+        await api.post('/admin/loans', payload)
+      }
+      cancelEdit()
       loadLoans()
     } catch (err) {
       setMsg(err.response?.data?.message || 'Failed to save loan')
@@ -88,6 +116,7 @@ export default function ManageLoans() {
   const deleteLoan = async (id) => {
     if (!confirm('Delete this loan record entirely? This also deletes its repayment history.')) return
     await api.delete(`/admin/loans/${id}`)
+    if (editingId === id) cancelEdit()
     loadLoans()
   }
 
@@ -102,7 +131,7 @@ export default function ManageLoans() {
       </p>
 
       <form onSubmit={submitLoan} className="card space-y-2">
-        <h2 className="font-semibold text-gray-700">New Loan</h2>
+        <h2 className="font-semibold text-gray-700">{editingId ? 'Edit Loan' : 'New Loan'}</h2>
         <input type="text" placeholder="Borrower name" className="input" required
           value={form.borrowerName} onChange={(e) => setForm({ ...form, borrowerName: e.target.value })} />
         <input type="text" placeholder="Contact (optional)" className="input"
@@ -120,7 +149,10 @@ export default function ManageLoans() {
         <input type="text" placeholder="Notes (optional)" className="input"
           value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         {msg && <p className="text-red-600 text-sm">{msg}</p>}
-        <button className="btn-primary w-full">Add Loan</button>
+        <div className="flex gap-2">
+          <button className="btn-primary flex-1">{editingId ? 'Update Loan' : 'Add Loan'}</button>
+          {editingId && <button type="button" onClick={cancelEdit} className="btn-secondary">Cancel</button>}
+        </div>
       </form>
 
       <div>
@@ -135,7 +167,10 @@ export default function ManageLoans() {
                     Lent {money(loan.principalAmount)} on {loan.loanDate} · {loan.interestRatePercent}₹/100 {loan.interestPeriodNote}
                   </p>
                 </div>
-                <button onClick={() => deleteLoan(loan.id)} className="text-red-500 text-sm ml-2">✕</button>
+                <div className="flex items-center gap-3 ml-2 shrink-0">
+                  <button onClick={() => startEdit(loan)} className="text-saffron-600 text-sm">Edit</button>
+                  <button onClick={() => deleteLoan(loan.id)} className="text-red-500 text-sm">✕</button>
+                </div>
               </div>
 
               <div className="mt-2 grid grid-cols-2 gap-2 text-sm">

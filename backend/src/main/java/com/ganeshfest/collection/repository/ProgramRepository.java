@@ -23,4 +23,6 @@ public interface ProgramRepository extends JpaRepository<Program, Long> {
 
     // Used by the Festival Days overview to pull programs for one specific day
     List<Program> findByFestivalDayIdOrderByIdAsc(Long festivalDayId);
+
+    long countByFestivalYearId(Long festivalYearId);
 }

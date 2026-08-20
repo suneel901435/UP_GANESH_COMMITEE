@@ -34,6 +34,7 @@ public class AdminCollectionController {
         public java.math.BigDecimal amount;
         public String paymentMode;
         public String notes;
+        public Boolean isPublic; // opt-in flag for the public donor leaderboard
         // No festivalDayId here on purpose - the backend auto-detects it below,
         // matching transactionDate against the year's festival days. The admin
         // never has to think about "is this a festival day or not" - they just
@@ -67,6 +68,7 @@ public class AdminCollectionController {
                 .amount(req.amount)
                 .paymentMode(com.ganeshfest.collection.enums.PaymentMode.valueOf(req.paymentMode))
                 .notes(req.notes)
+                .isPublic(req.isPublic == null || req.isPublic)
                 .createdBy(auth != null ? auth.getName() : "admin")
                 .build();
 
@@ -81,6 +83,7 @@ public class AdminCollectionController {
         c.setAmount(req.amount);
         c.setPaymentMode(com.ganeshfest.collection.enums.PaymentMode.valueOf(req.paymentMode));
         c.setNotes(req.notes);
+        if (req.isPublic != null) c.setIsPublic(req.isPublic);
         if (req.transactionDate != null) {
             LocalDate date = LocalDate.parse(req.transactionDate);
             c.setTransactionDate(date);

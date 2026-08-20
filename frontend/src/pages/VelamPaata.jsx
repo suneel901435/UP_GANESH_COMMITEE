@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import api from '../api/axios'
 import { useYear } from '../context/YearContext'
+import { getFullImageUrl } from '../utils/imageUrl'
 
 function money(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`
@@ -25,15 +26,6 @@ export default function VelamPaata() {
     .reduce((sum, i) => sum + Number(i.finalPrice || 0), 0)
 
   const soldCount = items.filter((i) => i.status === 'SOLD').length
-
-  const getFullImageUrl = (url) => {
-    if (!url) return null
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-      return url
-    }
-    const backendBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api').replace('/api', '')
-    return `${backendBase}${url.startsWith('/') ? '' : '/'}${url}`
-  }
 
   if (loading) {
     return (
