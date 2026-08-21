@@ -10,6 +10,7 @@ const publicLinks = [
   { to: '/annadanam', key: 'annadanamSponsors' },
   { to: '/sponsors', key: 'sponsors' },
   { to: '/velam', key: 'velamPaata' },
+  { to: '/gallery', key: 'gallery' },
   { to: '/leaderboard', key: 'leaderboard' },
   { to: '/past-years', key: 'pastYears' },
 ]

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import api from '../../api/axios'
 import { useYear } from '../../context/YearContext'
 import { downloadCsv } from '../../utils/exportCsv'
+import AdminPageHeader from '../../components/AdminPageHeader'
+import AdminEmptyState from '../../components/AdminEmptyState'
 
 const emptyForm = { sponsorName: '', category: '', amount: '', contact: '', notes: '', isPublic: true }
 
@@ -95,14 +97,17 @@ export default function ManageSponsors() {
   const categoryLabel = (key) => categories.find((c) => c.categoryKey === key)?.categoryLabel || key
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-gray-800">Sponsors</h1>
-        <button onClick={exportCsv} className="btn-secondary text-sm shrink-0">⬇ Export CSV</button>
-      </div>
+    <div className="space-y-5">
+      <AdminPageHeader
+        icon="🤝"
+        eyebrow={`Sponsors · ${selectedYear || ''}`}
+        title="Sponsors"
+        subtitle="Manage general festival sponsors and donors."
+        action={<button onClick={exportCsv} className="btn-secondary text-sm shrink-0 bg-white/20 text-white border-white/30 hover:bg-white/30">⬇ Export CSV</button>}
+      />
 
-      <form onSubmit={submit} className="card space-y-2">
-        <h2 className="font-semibold text-gray-700">{editingId ? 'Edit Sponsor' : 'Add Sponsor'}</h2>
+      <form onSubmit={submit} className="form-shell">
+        <h2 className="section-label">{editingId ? '✏️ Edit Sponsor' : '➕ Add Sponsor'}</h2>
         <input type="text" placeholder="Sponsor name" className="input" required
           value={form.sponsorName} onChange={(e) => setForm({ ...form, sponsorName: e.target.value })} />
 
@@ -113,7 +118,7 @@ export default function ManageSponsors() {
               <option key={c.id} value={c.categoryKey}>{c.categoryLabel}</option>
             ))}
           </select>
-          <Link to="/admin/sponsor-categories" className="text-xs text-saffron-600 mt-1 inline-block">
+          <Link to="/admin/sponsor-categories" className="text-xs text-saffron-600 font-semibold mt-1 inline-block">
             + Manage categories
           </Link>
         </div>
@@ -129,28 +134,33 @@ export default function ManageSponsors() {
             onChange={(e) => setForm({ ...form, isPublic: e.target.checked })} />
           Show on public donor leaderboard
         </label>
-        {msg && <p className="text-red-600 text-sm">{msg}</p>}
-        <div className="flex gap-2">
+        {msg && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-lg px-3 py-2">{msg}</p>}
+        <div className="flex gap-2 pt-1">
           <button className="btn-primary flex-1">{editingId ? 'Update Sponsor' : 'Add Sponsor'}</button>
           {editingId && <button type="button" onClick={cancelEdit} className="btn-secondary">Cancel</button>}
         </div>
       </form>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {items.map((s) => (
           <div key={s.id} className="card flex justify-between items-center">
-            <div>
-              <p className="font-medium text-gray-800">{s.sponsorName}</p>
-              <p className="text-xs text-gray-400">{s.category ? categoryLabel(s.category) : ''}{s.isPublic === false ? ' · Hidden from leaderboard' : ''}</p>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-base shrink-0">
+                🤝
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-gray-800 truncate">{s.sponsorName}</p>
+                <p className="text-xs text-gray-400 truncate">{s.category ? categoryLabel(s.category) : ''}{s.isPublic === false ? ' · Hidden from leaderboard' : ''}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              {s.amount != null && <p className="font-semibold text-saffron-700">₹{Number(s.amount).toLocaleString('en-IN')}</p>}
-              <button onClick={() => startEdit(s)} className="text-saffron-600 text-sm">Edit</button>
-              <button onClick={() => remove(s.id)} className="text-red-500 text-sm">✕</button>
+            <div className="flex items-center gap-1 shrink-0">
+              {s.amount != null && <p className="font-extrabold text-orange-700 bg-orange-50 px-2.5 py-1 rounded-lg text-sm mr-1">₹{Number(s.amount).toLocaleString('en-IN')}</p>}
+              <button onClick={() => startEdit(s)} className="btn-edit-text">Edit</button>
+              <button onClick={() => remove(s.id)} className="btn-danger-text">Delete</button>
             </div>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-gray-400">No sponsors added yet.</p>}
+        {items.length === 0 && <AdminEmptyState icon="🤝" title="No sponsors added yet" subtitle="Add your first sponsor using the form above." />}
       </div>
     </div>
   )

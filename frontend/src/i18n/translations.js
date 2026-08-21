@@ -12,6 +12,7 @@ export const translations = {
     annadanamSponsors: 'Annadanam Sponsors',
     sponsors: 'Sponsors',
     velamPaata: 'Velam Paata',
+    gallery: 'Gallery',
     leaderboard: 'Leaderboard',
     pastYears: 'Past Years',
     adminPanel: 'Admin Panel',
@@ -49,6 +50,25 @@ export const translations = {
     sold: 'Sold',
     available: 'Available',
     exportCsv: 'Export CSV',
+
+    // Vigraha Dhata flex card
+    flexCard: 'Flex Card',
+    vigrahaDhata: 'Vigraha Dhata',
+    tapToReveal: 'Tap to reveal our idol sponsor',
+    toBeAnnounced: 'To Be Announced',
+    vigrahaDhataEmpty: 'The idol sponsor will be revealed here soon',
+
+    // Reports
+    reports: 'Reports',
+    reportsDesc: 'All features at a glance, in charts',
+    reportsTitle: 'Festival Reports & Analytics',
+    reportsTagline: "A bird's-eye view of every feature - collections, expenses, sponsors, velam paata, and village lending - in one place.",
+    collectionsByPaymentMode: 'Collections by Payment Mode',
+    sponsorsByCategory: 'Sponsorship by Category',
+    velamPaataStatus: 'Velam Paata: Sold vs Available',
+    villageLendingOverview: 'Village Lending Fund Overview',
+    programsAndAnnadanam: 'Programs & Annadanam Seva',
+    noDataYet: 'No data yet',
   },
   te: {
     appTitle: 'గణేష్ ఉత్సవ్',
@@ -58,6 +78,7 @@ export const translations = {
     annadanamSponsors: 'అన్నదాన స్పాన్సర్లు',
     sponsors: 'స్పాన్సర్లు',
     velamPaata: 'వేలం పాట',
+    gallery: 'ఫోటో గ్యాలరీ',
     leaderboard: 'దాతల జాబితా',
     pastYears: 'గత సంవత్సరాలు',
     adminPanel: 'నిర్వాహక ప్యానెల్',
@@ -93,5 +114,24 @@ export const translations = {
     sold: 'అమ్మబడింది',
     available: 'అందుబాటులో ఉంది',
     exportCsv: 'CSV డౌన్‌లోడ్',
+
+    // Vigraha Dhata flex card
+    flexCard: 'ఫ్లెక్స్ కార్డ్',
+    vigrahaDhata: 'విగ్రహ దాత',
+    tapToReveal: 'మా విగ్రహ దాతను చూడటానికి నొక్కండి',
+    toBeAnnounced: 'త్వరలో ప్రకటించబడుతుంది',
+    vigrahaDhataEmpty: 'విగ్రహ దాత వివరాలు త్వరలో ఇక్కడ కనిపిస్తాయి',
+
+    // Reports
+    reports: 'నివేదికలు',
+    reportsDesc: 'జోడించిన అన్ని ఫీచర్లు చార్ట్‌ల రూపంలో',
+    reportsTitle: 'ఉత్సవ నివేదికలు & విశ్లేషణ',
+    reportsTagline: 'వసూళ్లు, ఖర్చులు, స్పాన్సర్లు, వేలం పాట మరియు గ్రామ రుణ నిధి - అన్ని ఫీచర్ల సమగ్ర వీక్షణ ఒకే చోట.',
+    collectionsByPaymentMode: 'చెల్లింపు విధానం వారీగా వసూళ్లు',
+    sponsorsByCategory: 'కేటగిరీ వారీగా స్పాన్సర్‌షిప్',
+    velamPaataStatus: 'వేలం పాట: అమ్మినవి vs అందుబాటులో ఉన్నవి',
+    villageLendingOverview: 'గ్రామ రుణ నిధి వివరాలు',
+    programsAndAnnadanam: 'కార్యక్రమాలు & అన్నదాన సేవ',
+    noDataYet: 'ఇంకా డేటా లేదు',
   },
 }

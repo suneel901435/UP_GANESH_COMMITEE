@@ -3,4 +3,5 @@ frontend/node_modules/
 backend/target/
 backend/.idea/
 *.iml
-backend/hs_err_pid*.log
+*.log
+hs_err_pid*.log

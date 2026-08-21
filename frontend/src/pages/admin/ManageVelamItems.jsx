@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import api from '../../api/axios'
 import { useYear } from '../../context/YearContext'
 import { getFullImageUrl } from '../../utils/imageUrl'
+import AdminPageHeader from '../../components/AdminPageHeader'
+import AdminEmptyState from '../../components/AdminEmptyState'
 
 const emptyForm = { itemName: '', description: '', basePrice: '' }
 
@@ -141,11 +143,16 @@ export default function ManageVelamItems() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold text-gray-800">Velam Paata Items</h1>
+    <div className="space-y-5">
+      <AdminPageHeader
+        icon="🏺"
+        eyebrow={`Velam Paata · ${selectedYear || ''}`}
+        title="Velam Paata Items"
+        subtitle="Auction items, starting prices, and winning buyers."
+      />
 
-      <form onSubmit={submit} className="card space-y-2">
-        <h2 className="font-semibold text-gray-700">{editingId ? 'Edit Item' : 'Add Item'}</h2>
+      <form onSubmit={submit} className="form-shell">
+        <h2 className="section-label">{editingId ? '✏️ Edit Item' : '➕ Add Item'}</h2>
         <input type="text" placeholder="Item name" className="input" required
           value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} />
         <input type="text" placeholder="Description (optional)" className="input"
@@ -158,7 +165,7 @@ export default function ManageVelamItems() {
             camera option behind "Files" - some users just want to point and
             shoot right there at the auction table. */}
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Item photo (optional)</label>
+          <label className="text-xs text-gray-500 font-medium block mb-1.5">Item photo (optional)</label>
           <div className="flex gap-2">
             <button
               type="button"
@@ -194,7 +201,7 @@ export default function ManageVelamItems() {
 
         {previewUrl ? (
           <div className="relative w-28 h-28">
-            <img src={previewUrl} alt="Preview" className="w-28 h-28 object-cover rounded-lg border border-gray-200" />
+            <img src={previewUrl} alt="Preview" className="w-28 h-28 object-cover rounded-xl border border-gray-200" />
             <button
               type="button"
               onClick={clearFile}
@@ -206,14 +213,14 @@ export default function ManageVelamItems() {
         ) : (
           editingId && existingImageUrl && (
             <div className="w-28 h-28">
-              <img src={getFullImageUrl(existingImageUrl)} alt="Current" className="w-28 h-28 object-cover rounded-lg border border-gray-200" />
+              <img src={getFullImageUrl(existingImageUrl)} alt="Current" className="w-28 h-28 object-cover rounded-xl border border-gray-200" />
               <p className="text-xs text-gray-400 mt-1">Current photo — pick a new one above to replace it</p>
             </div>
           )
         )}
 
-        {msg && <p className="text-red-600 text-sm">{msg}</p>}
-        <div className="flex gap-2">
+        {msg && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-lg px-3 py-2">{msg}</p>}
+        <div className="flex gap-2 pt-1">
           <button className="btn-primary flex-1" disabled={uploading}>
             {uploading ? 'Uploading photo...' : editingId ? 'Update Item' : 'Add Item'}
           </button>
@@ -232,35 +239,35 @@ export default function ManageVelamItems() {
                     <img
                       src={itemImageUrl}
                       alt={item.itemName}
-                      className="w-16 h-16 rounded-lg object-cover border border-gray-200 shrink-0"
+                      className="w-16 h-16 rounded-xl object-cover border border-gray-200 shrink-0"
                       onError={(e) => { e.target.style.display = 'none' }}
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-lg bg-saffron-50 border border-saffron-100 flex items-center justify-center text-2xl shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-2xl shrink-0">
                       🪔
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-800 truncate">{item.itemName}</p>
+                    <p className="font-bold text-gray-800 truncate">{item.itemName}</p>
                     <p className="text-xs text-gray-400">Base: ₹{Number(item.basePrice).toLocaleString('en-IN')}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <button onClick={() => startEdit(item)} className="text-saffron-600 text-sm">Edit</button>
-                  <button onClick={() => remove(item.id)} className="text-red-500 text-sm">✕</button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={() => startEdit(item)} className="btn-edit-text">Edit</button>
+                  <button onClick={() => remove(item.id)} className="btn-danger-text">Delete</button>
                 </div>
               </div>
 
               {item.status === 'SOLD' ? (
-                <div className="mt-2 bg-gray-50 rounded-lg p-2 flex justify-between items-center">
+                <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex justify-between items-center">
                   <div>
-                    <p className="text-sm">Sold to <span className="font-medium">{item.buyerName}</span></p>
-                    <p className="text-xs text-gray-400">₹{Number(item.finalPrice).toLocaleString('en-IN')}</p>
+                    <p className="text-sm">Sold to <span className="font-bold text-emerald-800">{item.buyerName}</span></p>
+                    <p className="text-xs text-emerald-600 font-semibold">₹{Number(item.finalPrice).toLocaleString('en-IN')}</p>
                   </div>
-                  <button onClick={() => unsell(item.id)} className="text-saffron-600 text-sm">Undo</button>
+                  <button onClick={() => unsell(item.id)} className="btn-edit-text">Undo</button>
                 </div>
               ) : (
-                <div className="mt-2 space-y-2">
+                <div className="mt-3 space-y-2 border-t border-orange-50 pt-3">
                   <input type="text" placeholder="Buyer name" className="input"
                     value={sellForm[item.id]?.buyerName || ''}
                     onChange={(e) => setSellForm({ ...sellForm, [item.id]: { ...sellForm[item.id], buyerName: e.target.value } })} />
@@ -278,7 +285,7 @@ export default function ManageVelamItems() {
             </div>
           )
         })}
-        {items.length === 0 && <p className="text-sm text-gray-400">No items added yet.</p>}
+        {items.length === 0 && <AdminEmptyState icon="🏺" title="No items added yet" subtitle="Add your first auction item using the form above." />}
       </div>
     </div>
   )

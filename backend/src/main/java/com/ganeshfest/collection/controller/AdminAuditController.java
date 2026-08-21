@@ -1,74 +1,118 @@
 package com.ganeshfest.collection.controller;
 
-import com.ganeshfest.collection.dto.AuditEntryDto;
-import com.ganeshfest.collection.entity.FestivalYear;
-import com.ganeshfest.collection.repository.DonationCollectionRepository;
-import com.ganeshfest.collection.repository.ExpenseRepository;
-import com.ganeshfest.collection.repository.FestivalYearRepository;
+import com.ganeshfest.collection.entity.AuditLog;
+import com.ganeshfest.collection.repository.AuditLogRepository;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Surfaces the createdBy/createdAt trail that DonationCollection and Expense
- * already store on every row, as one combined "who added what, when" log for
- * the committee. Read-only, admin-only (covered by SecurityConfig's
- * /api/admin/** rule) - this is not a full change-history (edits/deletes
- * aren't tracked separately, only original entry), but it's enough to answer
- * "who recorded this donation/expense and when" for audit purposes.
+ * The real audit trail: every CREATE/UPDATE/DELETE across every admin module
+ * (Collection, Expense, Sponsor, Sponsor Category, Program, Annadanam,
+ * Velam Paata, Village Lending) is written here by AuditLogService at the
+ * point the change happens - see each Admin*Controller. This controller is
+ * just a read/filter layer on top of that table.
  */
 @RestController
 @RequestMapping("/api/admin/audit")
 public class AdminAuditController {
 
-    private final DonationCollectionRepository collectionRepo;
-    private final ExpenseRepository expenseRepo;
-    private final FestivalYearRepository yearRepo;
+    private final AuditLogRepository auditLogRepo;
 
-    public AdminAuditController(DonationCollectionRepository collectionRepo, ExpenseRepository expenseRepo,
-                                 FestivalYearRepository yearRepo) {
-        this.collectionRepo = collectionRepo;
-        this.expenseRepo = expenseRepo;
-        this.yearRepo = yearRepo;
+    public AdminAuditController(AuditLogRepository auditLogRepo) {
+        this.auditLogRepo = auditLogRepo;
     }
 
-    @GetMapping("/years/{year}")
-    public List<AuditEntryDto> auditLog(@PathVariable Integer year) {
-        FestivalYear fy = yearRepo.findByYear(year)
-                .orElseThrow(() -> new RuntimeException("No festival data found for year " + year));
+    public static class AuditLogDto {
+        public Long id;
+        public String module;
+        public String action;
+        public Long entityId;
+        public String summary;
+        public String changes;
+        public BigDecimal amount;
+        public Integer festivalYear;
+        public String performedBy;
+        public LocalDateTime performedAt;
+    }
 
-        List<AuditEntryDto> entries = new ArrayList<>();
+    private AuditLogDto toDto(AuditLog a) {
+        AuditLogDto d = new AuditLogDto();
+        d.id = a.getId();
+        d.module = a.getModule();
+        d.action = a.getAction();
+        d.entityId = a.getEntityId();
+        d.summary = a.getSummary();
+        d.changes = a.getChanges();
+        d.amount = a.getAmount();
+        d.festivalYear = a.getFestivalYear();
+        d.performedBy = a.getPerformedBy();
+        d.performedAt = a.getPerformedAt();
+        return d;
+    }
 
-        collectionRepo.findByFestivalYearIdOrderByTransactionDateDescCreatedAtDesc(fy.getId()).forEach(c ->
-                entries.add(AuditEntryDto.builder()
-                        .entityType("Collection")
-                        .entityId(c.getId())
-                        .action("Added")
-                        .summary("Donation from " + c.getDonorName())
-                        .amount(c.getAmount())
-                        .createdBy(c.getCreatedBy() != null ? c.getCreatedBy() : "—")
-                        .createdAt(c.getCreatedAt())
-                        .build())
-        );
+    /**
+     * Filterable audit feed. All params optional - "module"/"admin"/"action"
+     * of null or "All" mean "don't filter on this field". Powers the filter
+     * bar on the Audit Trail admin page.
+     */
+    @GetMapping
+    public List<AuditLogDto> list(
+            @RequestParam(required = false) String module,
+            @RequestParam(required = false) String admin,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
-        expenseRepo.findByFestivalYearIdOrderByTransactionDateDescCreatedAtDesc(fy.getId()).forEach(e ->
-                entries.add(AuditEntryDto.builder()
-                        .entityType("Expense")
-                        .entityId(e.getId())
-                        .action("Added")
-                        .summary(e.getCategory() + (e.getPaidTo() != null && !e.getPaidTo().isBlank() ? " - paid to " + e.getPaidTo() : ""))
-                        .amount(e.getAmount())
-                        .createdBy(e.getCreatedBy() != null ? e.getCreatedBy() : "—")
-                        .createdAt(e.getCreatedAt())
-                        .build())
-        );
+        Specification<AuditLog> spec = (root, query, cb) -> cb.conjunction();
 
-        return entries.stream()
-                .sorted(Comparator.comparing(AuditEntryDto::getCreatedAt,
-                        Comparator.nullsLast(Comparator.reverseOrder())))
+        if (module != null && !module.isBlank() && !module.equalsIgnoreCase("All")) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("module"), module));
+        }
+        if (admin != null && !admin.isBlank() && !admin.equalsIgnoreCase("All")) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("performedBy"), admin));
+        }
+        if (action != null && !action.isBlank() && !action.equalsIgnoreCase("All")) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("action"), action.toUpperCase()));
+        }
+        if (year != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("festivalYear"), year));
+        }
+        if (from != null) {
+            LocalDateTime fromDt = from.atStartOfDay();
+            spec = spec.and((root, q, cb) -> cb.greaterThanOrEqualTo(root.get("performedAt"), fromDt));
+        }
+        if (to != null) {
+            LocalDateTime toDt = to.plusDays(1).atStartOfDay();
+            spec = spec.and((root, q, cb) -> cb.lessThan(root.get("performedAt"), toDt));
+        }
+
+        return auditLogRepo.findAll(spec, Sort.by(Sort.Direction.DESC, "performedAt")).stream()
+                .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+
+    /** Kept for the existing frontend route (Audit Trail page defaults to the selected festival year). */
+    @GetMapping("/years/{year}")
+    public List<AuditLogDto> auditLogForYear(@PathVariable Integer year) {
+        return list(null, null, null, year, null, null);
+    }
+
+    @GetMapping("/modules")
+    public List<String> modules() {
+        return auditLogRepo.findDistinctModules();
+    }
+
+    @GetMapping("/admins")
+    public List<String> admins() {
+        return auditLogRepo.findDistinctAdmins();
     }
 }

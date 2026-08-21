@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell,
 } from 'recharts'
+import PieLegend from './PieLegend'
 import api from '../api/axios'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -92,18 +93,16 @@ export default function DashboardCharts({ year }) {
         <div className="bg-white rounded-3xl border border-orange-100/80 p-5 sm:p-6 shadow-xs">
           <h3 className="text-sm font-black text-gray-800 mb-1">{t('expenseBreakdown')}</h3>
           <p className="text-xs text-gray-400 mb-4">Where the festival budget went</p>
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
               <Pie
                 data={pieData}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={85}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius="80%"
                 labelLine={false}
-                style={{ fontSize: 11 }}
               >
                 {pieData.map((_, idx) => (
                   <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
@@ -112,6 +111,7 @@ export default function DashboardCharts({ year }) {
               <Tooltip formatter={(value) => money(value)} contentStyle={{ borderRadius: 12, fontSize: 12, border: '1px solid #fed7aa' }} />
             </PieChart>
           </ResponsiveContainer>
+          <PieLegend data={pieData} colors={PIE_COLORS} />
         </div>
       )}
     </div>

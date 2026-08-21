@@ -6,6 +6,8 @@ import com.ganeshfest.collection.entity.FestivalYear;
 import com.ganeshfest.collection.repository.DonationCollectionRepository;
 import com.ganeshfest.collection.repository.FestivalDayRepository;
 import com.ganeshfest.collection.repository.FestivalYearRepository;
+import com.ganeshfest.collection.service.AuditLogService;
+import com.ganeshfest.collection.util.AuditChangeBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +21,14 @@ public class AdminCollectionController {
     private final DonationCollectionRepository collectionRepo;
     private final FestivalYearRepository yearRepo;
     private final FestivalDayRepository dayRepo;
+    private final AuditLogService auditLogService;
 
-    public AdminCollectionController(DonationCollectionRepository collectionRepo, FestivalYearRepository yearRepo, FestivalDayRepository dayRepo) {
+    public AdminCollectionController(DonationCollectionRepository collectionRepo, FestivalYearRepository yearRepo,
+                                      FestivalDayRepository dayRepo, AuditLogService auditLogService) {
         this.collectionRepo = collectionRepo;
         this.yearRepo = yearRepo;
         this.dayRepo = dayRepo;
+        this.auditLogService = auditLogService;
     }
 
     public static class CollectionRequest {
@@ -72,12 +77,23 @@ public class AdminCollectionController {
                 .createdBy(auth != null ? auth.getName() : "admin")
                 .build();
 
-        return ResponseEntity.ok(collectionRepo.save(c));
+        DonationCollection saved = collectionRepo.save(c);
+        auditLogService.logCreate("Collection", saved.getId(), "Donation from " + saved.getDonorName(),
+                saved.getAmount(), fy.getYear(), auth);
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DonationCollection> update(@PathVariable Long id, @RequestBody CollectionRequest req) {
+    public ResponseEntity<DonationCollection> update(@PathVariable Long id, @RequestBody CollectionRequest req, Authentication auth) {
         DonationCollection c = collectionRepo.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+
+        AuditChangeBuilder diff = new AuditChangeBuilder()
+                .track("Donor", c.getDonorName(), req.donorName)
+                .track("Amount", c.getAmount(), req.amount)
+                .track("Payment Mode", c.getPaymentMode(), req.paymentMode)
+                .track("Date", c.getTransactionDate(), req.transactionDate)
+                .track("Notes", c.getNotes(), req.notes);
+
         c.setDonorName(req.donorName);
         c.setDonorContact(req.donorContact);
         c.setAmount(req.amount);
@@ -90,11 +106,17 @@ public class AdminCollectionController {
             Long yearId = req.festivalYearId != null ? req.festivalYearId : c.getFestivalYear().getId();
             c.setFestivalDay(autoDetectFestivalDay(yearId, date));
         }
-        return ResponseEntity.ok(collectionRepo.save(c));
+        DonationCollection saved = collectionRepo.save(c);
+        auditLogService.logUpdate("Collection", saved.getId(), "Donation from " + saved.getDonorName(),
+                saved.getAmount(), saved.getFestivalYear().getYear(), diff.build(), auth);
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
+        DonationCollection c = collectionRepo.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+        auditLogService.logDelete("Collection", c.getId(), "Donation from " + c.getDonorName(),
+                c.getAmount(), c.getFestivalYear().getYear(), auth);
         collectionRepo.deleteById(id);
         return ResponseEntity.noContent().build();
     }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import api from '../api/axios'
 import { useYear } from '../context/YearContext'
 import DashboardCharts from '../components/DashboardCharts'
+import VigrahaDhataCard from '../components/VigrahaDhataCard'
 import { useLanguage } from '../context/LanguageContext'
 
 function money(n) {
@@ -307,6 +308,9 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Vigraha Dhata flex card: click or wait a few seconds to reveal the idol sponsor */}
+        <VigrahaDhataCard year={selectedYear} />
 
         {/* Charts: day-wise trend + expense breakdown */}
         <DashboardCharts year={selectedYear} />

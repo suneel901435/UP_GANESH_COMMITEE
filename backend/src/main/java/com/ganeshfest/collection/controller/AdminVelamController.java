@@ -6,9 +6,12 @@ import com.ganeshfest.collection.entity.VelamItem;
 import com.ganeshfest.collection.enums.VelamStatus;
 import com.ganeshfest.collection.repository.FestivalYearRepository;
 import com.ganeshfest.collection.repository.VelamItemRepository;
+import com.ganeshfest.collection.service.AuditLogService;
+import com.ganeshfest.collection.util.AuditChangeBuilder;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,13 +27,15 @@ public class AdminVelamController {
 
     private final VelamItemRepository velamRepo;
     private final FestivalYearRepository yearRepo;
+    private final AuditLogService auditLogService;
 
     @Value("${app.upload.dir}")
     private String uploadDir;
 
-    public AdminVelamController(VelamItemRepository velamRepo, FestivalYearRepository yearRepo) {
+    public AdminVelamController(VelamItemRepository velamRepo, FestivalYearRepository yearRepo, AuditLogService auditLogService) {
         this.velamRepo = velamRepo;
         this.yearRepo = yearRepo;
+        this.auditLogService = auditLogService;
     }
 
     public static class VelamRequest {
@@ -42,7 +47,7 @@ public class AdminVelamController {
     }
 
     @PostMapping
-    public ResponseEntity<VelamItem> create(@RequestBody VelamRequest req) {
+    public ResponseEntity<VelamItem> create(@RequestBody VelamRequest req, Authentication auth) {
         FestivalYear fy = yearRepo.findById(req.festivalYearId).orElseThrow(() -> new RuntimeException("Year not found"));
         VelamItem item = VelamItem.builder()
                 .festivalYear(fy)
@@ -52,41 +57,61 @@ public class AdminVelamController {
                 .status(VelamStatus.AVAILABLE)
                 .imageUrl(req.imageUrl)
                 .build();
-        return ResponseEntity.ok(velamRepo.save(item));
+        VelamItem saved = velamRepo.save(item);
+        auditLogService.logCreate("Velam Paata", saved.getId(), saved.getItemName(), saved.getBasePrice(), fy.getYear(), auth);
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<VelamItem> update(@PathVariable Long id, @RequestBody VelamRequest req) {
+    public ResponseEntity<VelamItem> update(@PathVariable Long id, @RequestBody VelamRequest req, Authentication auth) {
         VelamItem item = velamRepo.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+
+        AuditChangeBuilder diff = new AuditChangeBuilder()
+                .track("Item", item.getItemName(), req.itemName)
+                .track("Base Price", item.getBasePrice(), req.basePrice)
+                .track("Description", item.getDescription(), req.description);
+
         item.setItemName(req.itemName);
         item.setDescription(req.description);
         item.setBasePrice(req.basePrice);
         if (req.imageUrl != null) item.setImageUrl(req.imageUrl);
-        return ResponseEntity.ok(velamRepo.save(item));
+        VelamItem saved = velamRepo.save(item);
+        auditLogService.logUpdate("Velam Paata", saved.getId(), saved.getItemName(), saved.getBasePrice(),
+                saved.getFestivalYear().getYear(), diff.build(), auth);
+        return ResponseEntity.ok(saved);
     }
 
     @PostMapping("/{id}/mark-sold")
-    public ResponseEntity<VelamItem> markSold(@PathVariable Long id, @Valid @RequestBody MarkSoldRequest req) {
+    public ResponseEntity<VelamItem> markSold(@PathVariable Long id, @Valid @RequestBody MarkSoldRequest req, Authentication auth) {
         VelamItem item = velamRepo.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
         item.setBuyerName(req.getBuyerName());
         item.setBuyerContact(req.getBuyerContact());
         item.setFinalPrice(req.getFinalPrice());
         item.setStatus(VelamStatus.SOLD);
-        return ResponseEntity.ok(velamRepo.save(item));
+        VelamItem saved = velamRepo.save(item);
+        auditLogService.logUpdate("Velam Paata", saved.getId(), saved.getItemName() + " (sold to " + saved.getBuyerName() + ")",
+                saved.getFinalPrice(), saved.getFestivalYear().getYear(), "Status: AVAILABLE → SOLD", auth);
+        return ResponseEntity.ok(saved);
     }
 
     @PostMapping("/{id}/unsell")
-    public ResponseEntity<VelamItem> unsell(@PathVariable Long id) {
+    public ResponseEntity<VelamItem> unsell(@PathVariable Long id, Authentication auth) {
         VelamItem item = velamRepo.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
         item.setBuyerName(null);
         item.setBuyerContact(null);
         item.setFinalPrice(null);
         item.setStatus(VelamStatus.AVAILABLE);
-        return ResponseEntity.ok(velamRepo.save(item));
+        VelamItem saved = velamRepo.save(item);
+        auditLogService.logUpdate("Velam Paata", saved.getId(), saved.getItemName(), null,
+                saved.getFestivalYear().getYear(), "Status: SOLD → AVAILABLE", auth);
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
+        VelamItem item = velamRepo.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+        auditLogService.logDelete("Velam Paata", item.getId(), item.getItemName(), item.getBasePrice(),
+                item.getFestivalYear().getYear(), auth);
         velamRepo.deleteById(id);
         return ResponseEntity.noContent().build();
     }
@@ -96,6 +121,10 @@ public class AdminVelamController {
      * pass as imageUrl when creating/updating the item. Fine for a free-tier
      * deploy with low traffic; swap for Cloudinary later if the committee
      * wants images to survive container restarts on Render's free tier.
+     *
+     * Files are written under uploadDir/velam-items/ so the on-disk path
+     * matches the "/uploads/velam-items/..." URL that WebConfig serves
+     * (WebConfig maps /uploads/** onto the shared base uploadDir).
      */
     @PostMapping("/upload-image")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
@@ -103,7 +132,7 @@ public class AdminVelamController {
             return ResponseEntity.badRequest().body("File is empty");
         }
 
-        Path dir = Paths.get(uploadDir);
+        Path dir = Paths.get(uploadDir, "velam-items");
         Files.createDirectories(dir);
 
         String ext = "";

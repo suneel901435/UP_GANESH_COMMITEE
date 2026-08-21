@@ -12,8 +12,11 @@ import Sponsors from './pages/Sponsors'
 import VelamPaata from './pages/VelamPaata'
 import PastYears from './pages/PastYears'
 import Leaderboard from './pages/Leaderboard'
+import Gallery from './pages/Gallery'
 
 import Login from './pages/admin/Login'
+import ForgotPassword from './pages/admin/ForgotPassword'
+import ResetPassword from './pages/admin/ResetPassword'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ManageSetup from './pages/admin/ManageSetup'
 import ManageCollections from './pages/admin/ManageCollections'
@@ -23,8 +26,10 @@ import ManageSponsors from './pages/admin/ManageSponsors'
 import ManageSponsorCategories from './pages/admin/ManageSponsorCategories'
 import ManageAnnadanam from './pages/admin/ManageAnnadanam'
 import ManageVelamItems from './pages/admin/ManageVelamItems'
+import ManageGallery from './pages/admin/ManageGallery'
 import ManageLoans from './pages/admin/ManageLoans'
 import AuditLog from './pages/admin/AuditLog'
+import Reports from './pages/admin/Reports'
 
 export default function App() {
   return (
@@ -40,11 +45,14 @@ export default function App() {
           <Route path="/annadanam" element={<AnnadanamSponsors />} />
           <Route path="/sponsors" element={<Sponsors />} />
           <Route path="/velam" element={<VelamPaata />} />
+          <Route path="/gallery" element={<Gallery />} />
           <Route path="/past-years" element={<PastYears />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
 
           {/* Admin */}
           <Route path="/admin/login" element={<Login />} />
+          <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+          <Route path="/admin/reset-password" element={<ResetPassword />} />
           <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/setup" element={<ProtectedRoute><ManageSetup /></ProtectedRoute>} />
           <Route path="/admin/collections" element={<ProtectedRoute><ManageCollections /></ProtectedRoute>} />
@@ -54,7 +62,9 @@ export default function App() {
           <Route path="/admin/sponsor-categories" element={<ProtectedRoute><ManageSponsorCategories /></ProtectedRoute>} />
           <Route path="/admin/annadanam" element={<ProtectedRoute><ManageAnnadanam /></ProtectedRoute>} />
           <Route path="/admin/velam-items" element={<ProtectedRoute><ManageVelamItems /></ProtectedRoute>} />
+          <Route path="/admin/gallery" element={<ProtectedRoute><ManageGallery /></ProtectedRoute>} />
           <Route path="/admin/loans" element={<ProtectedRoute><ManageLoans /></ProtectedRoute>} />
+          <Route path="/admin/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/admin/audit" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
         </Routes>
       </div>

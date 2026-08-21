@@ -3,7 +3,10 @@ package com.ganeshfest.collection.controller;
 import com.ganeshfest.collection.entity.SponsorCategory;
 import com.ganeshfest.collection.repository.SponsorCategoryRepository;
 import com.ganeshfest.collection.repository.SponsorRepository;
+import com.ganeshfest.collection.service.AuditLogService;
+import com.ganeshfest.collection.util.AuditChangeBuilder;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,10 +23,12 @@ public class AdminSponsorCategoryController {
 
     private final SponsorCategoryRepository categoryRepo;
     private final SponsorRepository sponsorRepo;
+    private final AuditLogService auditLogService;
 
-    public AdminSponsorCategoryController(SponsorCategoryRepository categoryRepo, SponsorRepository sponsorRepo) {
+    public AdminSponsorCategoryController(SponsorCategoryRepository categoryRepo, SponsorRepository sponsorRepo, AuditLogService auditLogService) {
         this.categoryRepo = categoryRepo;
         this.sponsorRepo = sponsorRepo;
+        this.auditLogService = auditLogService;
     }
 
     public static class SponsorCategoryRequest {
@@ -44,7 +49,7 @@ public class AdminSponsorCategoryController {
     }
 
     @PostMapping
-    public ResponseEntity<SponsorCategory> create(@RequestBody SponsorCategoryRequest req) {
+    public ResponseEntity<SponsorCategory> create(@RequestBody SponsorCategoryRequest req, Authentication auth) {
         if (req.categoryLabel == null || req.categoryLabel.isBlank()) {
             throw new RuntimeException("Please enter a category name.");
         }
@@ -63,13 +68,21 @@ public class AdminSponsorCategoryController {
                 .sortOrder(req.sortOrder != null ? req.sortOrder : 0)
                 .build();
 
-        return ResponseEntity.ok(categoryRepo.save(category));
+        SponsorCategory saved = categoryRepo.save(category);
+        auditLogService.logCreate("Sponsor Category", saved.getId(), saved.getCategoryLabel(), null, null, auth);
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SponsorCategory> update(@PathVariable Long id, @RequestBody SponsorCategoryRequest req) {
+    public ResponseEntity<SponsorCategory> update(@PathVariable Long id, @RequestBody SponsorCategoryRequest req, Authentication auth) {
         SponsorCategory category = categoryRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        AuditChangeBuilder diff = new AuditChangeBuilder()
+                .track("Label", category.getCategoryLabel(), req.categoryLabel)
+                .track("Key", category.getCategoryKey(), req.categoryKey)
+                .track("Active", category.getActive(), req.active)
+                .track("Sort Order", category.getSortOrder(), req.sortOrder);
 
         if (req.categoryLabel != null && !req.categoryLabel.isBlank()) {
             category.setCategoryLabel(req.categoryLabel.trim());
@@ -84,11 +97,13 @@ public class AdminSponsorCategoryController {
         if (req.active != null) category.setActive(req.active);
         if (req.sortOrder != null) category.setSortOrder(req.sortOrder);
 
-        return ResponseEntity.ok(categoryRepo.save(category));
+        SponsorCategory saved = categoryRepo.save(category);
+        auditLogService.logUpdate("Sponsor Category", saved.getId(), saved.getCategoryLabel(), null, null, diff.build(), auth);
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) {
+    public ResponseEntity<?> delete(@PathVariable Long id, Authentication auth) {
         SponsorCategory category = categoryRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
@@ -98,6 +113,7 @@ public class AdminSponsorCategoryController {
         // dropdown for future entries without meaning to.
         long usageCount = sponsorRepo.countByCategory(category.getCategoryKey());
 
+        auditLogService.logDelete("Sponsor Category", category.getId(), category.getCategoryLabel(), null, null, auth);
         categoryRepo.deleteById(id);
         return ResponseEntity.ok().body(java.util.Map.of(
                 "deleted", true,

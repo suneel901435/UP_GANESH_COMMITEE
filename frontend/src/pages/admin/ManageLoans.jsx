@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import api from '../../api/axios'
+import AdminPageHeader from '../../components/AdminPageHeader'
+import AdminEmptyState from '../../components/AdminEmptyState'
 
 function today() {
   return new Date().toISOString().slice(0, 10)
@@ -122,16 +124,20 @@ export default function ManageLoans() {
 
   const activeLoans = loans.filter((l) => l.status === 'ACTIVE')
   const closedLoans = loans.filter((l) => l.status === 'CLOSED')
+  const totalOutstanding = activeLoans.reduce((s, l) => s + (Number(l.outstandingPrincipal) || 0), 0)
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold text-gray-800">Village Lending (Vaddi)</h1>
-      <p className="text-xs text-gray-400 -mt-2">
-        Admin-only — borrower names and amounts here are not shown on the public site. Only aggregate totals appear on the public dashboard.
-      </p>
+    <div className="space-y-5">
+      <AdminPageHeader
+        icon="💵"
+        eyebrow="Village Lending"
+        title="Village Lending (Vaddi)"
+        subtitle="Admin-only — borrower names and amounts are not shown on the public site."
+        stat={{ label: 'Outstanding', value: money(totalOutstanding) }}
+      />
 
-      <form onSubmit={submitLoan} className="card space-y-2">
-        <h2 className="font-semibold text-gray-700">{editingId ? 'Edit Loan' : 'New Loan'}</h2>
+      <form onSubmit={submitLoan} className="form-shell">
+        <h2 className="section-label">{editingId ? '✏️ Edit Loan' : '➕ New Loan'}</h2>
         <input type="text" placeholder="Borrower name" className="input" required
           value={form.borrowerName} onChange={(e) => setForm({ ...form, borrowerName: e.target.value })} />
         <input type="text" placeholder="Contact (optional)" className="input"
@@ -148,42 +154,47 @@ export default function ManageLoans() {
           value={form.loanDate} onChange={(e) => setForm({ ...form, loanDate: e.target.value })} />
         <input type="text" placeholder="Notes (optional)" className="input"
           value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-        {msg && <p className="text-red-600 text-sm">{msg}</p>}
-        <div className="flex gap-2">
+        {msg && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-lg px-3 py-2">{msg}</p>}
+        <div className="flex gap-2 pt-1">
           <button className="btn-primary flex-1">{editingId ? 'Update Loan' : 'Add Loan'}</button>
           {editingId && <button type="button" onClick={cancelEdit} className="btn-secondary">Cancel</button>}
         </div>
       </form>
 
       <div>
-        <h2 className="font-semibold text-gray-700 mb-2">Active Loans ({activeLoans.length})</h2>
-        <div className="space-y-2">
+        <p className="section-label mb-2">🟢 Active Loans ({activeLoans.length})</p>
+        <div className="space-y-2.5">
           {activeLoans.map((loan) => (
             <div key={loan.id} className="card">
               <div className="flex justify-between items-start">
-                <div onClick={() => toggleExpand(loan.id)} className="cursor-pointer flex-1">
-                  <p className="font-medium text-gray-800">{loan.borrowerName}</p>
-                  <p className="text-xs text-gray-400">
-                    Lent {money(loan.principalAmount)} on {loan.loanDate} · {loan.interestRatePercent}₹/100 {loan.interestPeriodNote}
-                  </p>
+                <div onClick={() => toggleExpand(loan.id)} className="cursor-pointer flex-1 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-base shrink-0">
+                    💵
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-800 truncate">{loan.borrowerName}</p>
+                    <p className="text-xs text-gray-400">
+                      Lent {money(loan.principalAmount)} on {loan.loanDate} · {loan.interestRatePercent}₹/100 {loan.interestPeriodNote}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 ml-2 shrink-0">
-                  <button onClick={() => startEdit(loan)} className="text-saffron-600 text-sm">Edit</button>
-                  <button onClick={() => deleteLoan(loan.id)} className="text-red-500 text-sm">✕</button>
+                <div className="flex items-center gap-1 ml-2 shrink-0">
+                  <button onClick={() => startEdit(loan)} className="btn-edit-text">Edit</button>
+                  <button onClick={() => deleteLoan(loan.id)} className="btn-danger-text">Delete</button>
                 </div>
               </div>
 
-              <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                <div><p className="text-gray-400">Outstanding</p><p className="font-medium text-saffron-700">{money(loan.outstandingPrincipal)}</p></div>
-                <div><p className="text-gray-400">Interest paid so far</p><p className="font-medium text-green-700">{money(loan.totalInterestPaid)}</p></div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-orange-50 rounded-lg p-2"><p className="text-gray-400 text-xs">Outstanding</p><p className="font-bold text-orange-700">{money(loan.outstandingPrincipal)}</p></div>
+                <div className="bg-emerald-50 rounded-lg p-2"><p className="text-gray-400 text-xs">Interest paid so far</p><p className="font-bold text-emerald-700">{money(loan.totalInterestPaid)}</p></div>
               </div>
 
-              <button onClick={() => toggleExpand(loan.id)} className="text-saffron-600 text-sm mt-2">
+              <button onClick={() => toggleExpand(loan.id)} className="btn-edit-text mt-2 !px-0">
                 {expandedId === loan.id ? 'Hide details ▲' : 'Record repayment / view history ▼'}
               </button>
 
               {expandedId === loan.id && (
-                <div className="mt-3 border-t border-gray-100 pt-3 space-y-3">
+                <div className="mt-3 border-t border-orange-100 pt-3 space-y-3">
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <input type="date" className="input" value={repayForm.paymentDate}
@@ -202,7 +213,7 @@ export default function ManageLoans() {
 
                   <div className="space-y-1">
                     {(repayments[loan.id] || []).map((r) => (
-                      <div key={r.id} className="flex justify-between text-xs text-gray-500 border-b border-gray-50 py-1">
+                      <div key={r.id} className="flex justify-between text-xs text-gray-500 border-b border-gray-50 py-1.5">
                         <span>{r.paymentDate}{r.notes ? ` · ${r.notes}` : ''}</span>
                         <span>
                           {Number(r.principalPaid) > 0 && <>P: {money(r.principalPaid)} </>}
@@ -220,23 +231,23 @@ export default function ManageLoans() {
               )}
             </div>
           ))}
-          {activeLoans.length === 0 && <p className="text-sm text-gray-400">No active loans.</p>}
+          {activeLoans.length === 0 && <AdminEmptyState icon="💵" title="No active loans" subtitle="Loans you add above will show up here." />}
         </div>
       </div>
 
       {closedLoans.length > 0 && (
         <div>
-          <h2 className="font-semibold text-gray-700 mb-2">Closed Loans ({closedLoans.length})</h2>
-          <div className="space-y-2">
+          <p className="section-label mb-2">⚪ Closed Loans ({closedLoans.length})</p>
+          <div className="space-y-2.5">
             {closedLoans.map((loan) => (
-              <div key={loan.id} className="card bg-gray-50 flex justify-between items-center">
+              <div key={loan.id} className="card bg-gray-50/70 flex justify-between items-center">
                 <div>
-                  <p className="font-medium text-gray-700">{loan.borrowerName}</p>
+                  <p className="font-bold text-gray-700">{loan.borrowerName}</p>
                   <p className="text-xs text-gray-400">
                     {money(loan.principalAmount)} · Interest earned: {money(loan.totalInterestPaid)}
                   </p>
                 </div>
-                <button onClick={() => reopenLoan(loan.id)} className="text-saffron-600 text-xs">Reopen</button>
+                <button onClick={() => reopenLoan(loan.id)} className="btn-edit-text">Reopen</button>
               </div>
             ))}
           </div>

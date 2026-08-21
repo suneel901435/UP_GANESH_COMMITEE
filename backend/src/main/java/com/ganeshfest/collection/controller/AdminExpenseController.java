@@ -6,6 +6,8 @@ import com.ganeshfest.collection.entity.FestivalYear;
 import com.ganeshfest.collection.repository.ExpenseRepository;
 import com.ganeshfest.collection.repository.FestivalDayRepository;
 import com.ganeshfest.collection.repository.FestivalYearRepository;
+import com.ganeshfest.collection.service.AuditLogService;
+import com.ganeshfest.collection.util.AuditChangeBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +21,14 @@ public class AdminExpenseController {
     private final ExpenseRepository expenseRepo;
     private final FestivalYearRepository yearRepo;
     private final FestivalDayRepository dayRepo;
+    private final AuditLogService auditLogService;
 
-    public AdminExpenseController(ExpenseRepository expenseRepo, FestivalYearRepository yearRepo, FestivalDayRepository dayRepo) {
+    public AdminExpenseController(ExpenseRepository expenseRepo, FestivalYearRepository yearRepo,
+                                   FestivalDayRepository dayRepo, AuditLogService auditLogService) {
         this.expenseRepo = expenseRepo;
         this.yearRepo = yearRepo;
         this.dayRepo = dayRepo;
+        this.auditLogService = auditLogService;
     }
 
     public static class ExpenseRequest {
@@ -58,12 +63,22 @@ public class AdminExpenseController {
                 .createdBy(auth != null ? auth.getName() : "admin")
                 .build();
 
-        return ResponseEntity.ok(expenseRepo.save(e));
+        Expense saved = expenseRepo.save(e);
+        auditLogService.logCreate("Expense", saved.getId(), saved.getCategory(), saved.getAmount(), fy.getYear(), auth);
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Expense> update(@PathVariable Long id, @RequestBody ExpenseRequest req) {
+    public ResponseEntity<Expense> update(@PathVariable Long id, @RequestBody ExpenseRequest req, Authentication auth) {
         Expense e = expenseRepo.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+
+        AuditChangeBuilder diff = new AuditChangeBuilder()
+                .track("Category", e.getCategory(), req.category)
+                .track("Amount", e.getAmount(), req.amount)
+                .track("Paid To", e.getPaidTo(), req.paidTo)
+                .track("Date", e.getTransactionDate(), req.transactionDate)
+                .track("Description", e.getDescription(), req.description);
+
         e.setCategory(req.category);
         e.setDescription(req.description);
         e.setAmount(req.amount);
@@ -74,11 +89,16 @@ public class AdminExpenseController {
             Long yearId = req.festivalYearId != null ? req.festivalYearId : e.getFestivalYear().getId();
             e.setFestivalDay(autoDetectFestivalDay(yearId, date));
         }
-        return ResponseEntity.ok(expenseRepo.save(e));
+        Expense saved = expenseRepo.save(e);
+        auditLogService.logUpdate("Expense", saved.getId(), saved.getCategory(), saved.getAmount(),
+                saved.getFestivalYear().getYear(), diff.build(), auth);
+        return ResponseEntity.ok(saved);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
+        Expense e = expenseRepo.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+        auditLogService.logDelete("Expense", e.getId(), e.getCategory(), e.getAmount(), e.getFestivalYear().getYear(), auth);
         expenseRepo.deleteById(id);
         return ResponseEntity.noContent().build();
     }

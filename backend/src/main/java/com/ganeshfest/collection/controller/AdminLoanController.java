@@ -7,6 +7,8 @@ import com.ganeshfest.collection.entity.LoanRepayment;
 import com.ganeshfest.collection.enums.LoanStatus;
 import com.ganeshfest.collection.repository.LoanRepaymentRepository;
 import com.ganeshfest.collection.repository.LoanRepository;
+import com.ganeshfest.collection.service.AuditLogService;
+import com.ganeshfest.collection.util.AuditChangeBuilder;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -29,10 +31,12 @@ public class AdminLoanController {
 
     private final LoanRepository loanRepo;
     private final LoanRepaymentRepository repaymentRepo;
+    private final AuditLogService auditLogService;
 
-    public AdminLoanController(LoanRepository loanRepo, LoanRepaymentRepository repaymentRepo) {
+    public AdminLoanController(LoanRepository loanRepo, LoanRepaymentRepository repaymentRepo, AuditLogService auditLogService) {
         this.loanRepo = loanRepo;
         this.repaymentRepo = repaymentRepo;
+        this.auditLogService = auditLogService;
     }
 
     public static class LoanRequest {
@@ -77,12 +81,21 @@ public class AdminLoanController {
                 .createdBy(auth != null ? auth.getName() : "admin")
                 .build();
         loan = loanRepo.save(loan);
+        auditLogService.logCreate("Village Lending", loan.getId(), loan.getBorrowerName(), loan.getPrincipalAmount(), null, auth);
         return ResponseEntity.ok(toSummary(loan));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LoanSummaryDto> update(@PathVariable Long id, @RequestBody LoanRequest req) {
+    public ResponseEntity<LoanSummaryDto> update(@PathVariable Long id, @RequestBody LoanRequest req, Authentication auth) {
         Loan loan = loanRepo.findById(id).orElseThrow(() -> new RuntimeException("Loan not found"));
+
+        AuditChangeBuilder diff = new AuditChangeBuilder()
+                .track("Borrower", loan.getBorrowerName(), req.borrowerName)
+                .track("Principal", loan.getPrincipalAmount(), req.principalAmount)
+                .track("Interest Rate %", loan.getInterestRatePercent(), req.interestRatePercent)
+                .track("Loan Date", loan.getLoanDate(), req.loanDate)
+                .track("Notes", loan.getNotes(), req.notes);
+
         loan.setBorrowerName(req.borrowerName);
         loan.setBorrowerContact(req.borrowerContact);
         if (req.principalAmount != null) loan.setPrincipalAmount(req.principalAmount);
@@ -90,7 +103,10 @@ public class AdminLoanController {
         loan.setInterestPeriodNote(req.interestPeriodNote);
         if (req.loanDate != null) loan.setLoanDate(LocalDate.parse(req.loanDate));
         loan.setNotes(req.notes);
-        return ResponseEntity.ok(toSummary(loanRepo.save(loan)));
+        Loan saved = loanRepo.save(loan);
+        auditLogService.logUpdate("Village Lending", saved.getId(), saved.getBorrowerName(),
+                saved.getPrincipalAmount(), null, diff.build(), auth);
+        return ResponseEntity.ok(toSummary(saved));
     }
 
     @PostMapping("/{id}/repayments")
@@ -106,33 +122,44 @@ public class AdminLoanController {
                 .createdBy(auth != null ? auth.getName() : "admin")
                 .build();
         repaymentRepo.save(repayment);
+        auditLogService.logCreate("Village Lending", loan.getId(),
+                "Repayment for " + loan.getBorrowerName(),
+                repayment.getPrincipalPaid().add(repayment.getInterestPaid()), null, auth);
 
         // Auto-close the loan once the full principal is recovered
         BigDecimal totalPrincipalPaid = repaymentRepo.sumPrincipalPaidByLoan(id);
         if (totalPrincipalPaid.compareTo(loan.getPrincipalAmount()) >= 0) {
             loan.setStatus(LoanStatus.CLOSED);
             loanRepo.save(loan);
+            auditLogService.logUpdate("Village Lending", loan.getId(), loan.getBorrowerName(), null, null,
+                    "Status: ACTIVE → CLOSED (auto, fully repaid)", auth);
         }
 
         return ResponseEntity.ok(toSummary(loanRepo.findById(id).orElseThrow()));
     }
 
     @PostMapping("/{id}/close")
-    public ResponseEntity<LoanSummaryDto> close(@PathVariable Long id) {
+    public ResponseEntity<LoanSummaryDto> close(@PathVariable Long id, Authentication auth) {
         Loan loan = loanRepo.findById(id).orElseThrow(() -> new RuntimeException("Loan not found"));
         loan.setStatus(LoanStatus.CLOSED);
-        return ResponseEntity.ok(toSummary(loanRepo.save(loan)));
+        Loan saved = loanRepo.save(loan);
+        auditLogService.logUpdate("Village Lending", saved.getId(), saved.getBorrowerName(), null, null, "Status: ACTIVE → CLOSED", auth);
+        return ResponseEntity.ok(toSummary(saved));
     }
 
     @PostMapping("/{id}/reopen")
-    public ResponseEntity<LoanSummaryDto> reopen(@PathVariable Long id) {
+    public ResponseEntity<LoanSummaryDto> reopen(@PathVariable Long id, Authentication auth) {
         Loan loan = loanRepo.findById(id).orElseThrow(() -> new RuntimeException("Loan not found"));
         loan.setStatus(LoanStatus.ACTIVE);
-        return ResponseEntity.ok(toSummary(loanRepo.save(loan)));
+        Loan saved = loanRepo.save(loan);
+        auditLogService.logUpdate("Village Lending", saved.getId(), saved.getBorrowerName(), null, null, "Status: CLOSED → ACTIVE", auth);
+        return ResponseEntity.ok(toSummary(saved));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
+        Loan loan = loanRepo.findById(id).orElseThrow(() -> new RuntimeException("Loan not found"));
+        auditLogService.logDelete("Village Lending", loan.getId(), loan.getBorrowerName(), loan.getPrincipalAmount(), null, auth);
         loanRepo.deleteById(id);
         return ResponseEntity.noContent().build();
     }

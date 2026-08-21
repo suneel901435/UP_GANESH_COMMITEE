@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import api from '../../api/axios'
 import { useYear } from '../../context/YearContext'
+import AdminPageHeader from '../../components/AdminPageHeader'
+import AdminEmptyState from '../../components/AdminEmptyState'
 
 const emptyForm = { name: '', description: '', timeSlot: '', festivalDayId: '' }
 
@@ -73,11 +75,16 @@ export default function ManagePrograms() {
   }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold text-gray-800">Programs</h1>
+    <div className="space-y-5">
+      <AdminPageHeader
+        icon="🎭"
+        eyebrow={`Programs · ${selectedYear || ''}`}
+        title="Programs"
+        subtitle="Cultural programs and events for the festival."
+      />
 
-      <form onSubmit={submit} className="card space-y-2">
-        <h2 className="font-semibold text-gray-700">{editingId ? 'Edit Program' : 'Add Program'}</h2>
+      <form onSubmit={submit} className="form-shell">
+        <h2 className="section-label">{editingId ? '✏️ Edit Program' : '➕ Add Program'}</h2>
         <input type="text" placeholder="Program name" className="input" required
           value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <input type="text" placeholder="Description (optional)" className="input"
@@ -88,27 +95,32 @@ export default function ManagePrograms() {
           <option value="">Whole festival (no specific day)</option>
           {days.map((d) => <option key={d.id} value={d.id}>Day {d.dayNumber} — {d.date}</option>)}
         </select>
-        {msg && <p className="text-red-600 text-sm">{msg}</p>}
-        <div className="flex gap-2">
+        {msg && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-lg px-3 py-2">{msg}</p>}
+        <div className="flex gap-2 pt-1">
           <button className="btn-primary flex-1">{editingId ? 'Update Program' : 'Add Program'}</button>
           {editingId && <button type="button" onClick={cancelEdit} className="btn-secondary">Cancel</button>}
         </div>
       </form>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {items.map((p) => (
           <div key={p.id} className="card flex justify-between items-start">
-            <div>
-              <p className="font-medium text-gray-800">{p.name}</p>
-              <p className="text-xs text-gray-400">{p.timeSlot}{p.festivalDay ? ` · Day ${p.festivalDay.dayNumber}` : ''}</p>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-base shrink-0">
+                🎭
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-gray-800 truncate">{p.name}</p>
+                <p className="text-xs text-gray-400 truncate">{p.timeSlot}{p.festivalDay ? ` · Day ${p.festivalDay.dayNumber}` : ''}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <button onClick={() => startEdit(p)} className="text-saffron-600 text-sm">Edit</button>
-              <button onClick={() => remove(p.id)} className="text-red-500 text-sm">✕</button>
+            <div className="flex items-center gap-1 shrink-0 ml-2">
+              <button onClick={() => startEdit(p)} className="btn-edit-text">Edit</button>
+              <button onClick={() => remove(p.id)} className="btn-danger-text">Delete</button>
             </div>
           </div>
         ))}
-        {items.length === 0 && <p className="text-sm text-gray-400">No programs added yet.</p>}
+        {items.length === 0 && <AdminEmptyState icon="🎭" title="No programs added yet" subtitle="Add your first program using the form above." />}
       </div>
     </div>
   )

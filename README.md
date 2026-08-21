@@ -43,9 +43,24 @@ ganesh-app/
    - Email: `admin@ganeshfest.local`
    - Password: `Admin@123`
 
-   **Log in and note this down — there's no "forgot password" flow yet, so if you
-   want to change it, do it via a direct SQL update on `admin_user` for now, or add
-   more admins by inserting rows with a bcrypt-hashed password.**
+   **Log in and change this password right away.** If you ever forget an admin
+   password, use the "Forgot password?" link on the admin login page (see
+   section 2a below) — no more manual SQL needed.
+
+### 2a. Forgot-password email setup
+The "Forgot password?" link on the admin login page emails a one-time reset
+link (valid 30 minutes) to the admin's registered email address. To make this
+work, set these in `application.properties` (or as env vars in production):
+- `spring.mail.host`, `spring.mail.port`, `spring.mail.username`,
+  `spring.mail.password` — your SMTP provider's details (Gmail with an
+  [App Password](https://myaccount.google.com/apppasswords), Mailtrap, SendGrid, etc.)
+- `app.mail.from` — the "from" address shown on the reset email
+- `app.frontend.admin-url` — the deployed admin frontend's base URL (e.g.
+  `https://yourapp.com/admin`), so the emailed link points to the right place
+
+If you skip this setup, login still works fine — only the "Forgot password?"
+email won't send until SMTP credentials are configured. In that case, you can
+still fall back to a direct SQL update on `admin_user` (see below).
 
 ### Adding more admin users (quick way, via SQL)
 Spring Security's `PasswordEncoder` here is BCrypt. Generate a bcrypt hash (there
@@ -149,6 +164,8 @@ GET /api/public/years/{year}/velam-items
 **Admin (JWT required, `Authorization: Bearer <token>`):**
 ```
 POST /api/auth/login
+POST /api/auth/forgot-password   (public — no auth required, sends reset email)
+POST /api/auth/reset-password    (public — no auth required, consumes reset token)
 POST/PUT/DELETE /api/admin/setup/years, /api/admin/setup/days
 POST/PUT/DELETE /api/admin/collections
 POST/PUT/DELETE /api/admin/expenses

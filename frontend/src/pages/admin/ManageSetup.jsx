@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import api from '../../api/axios'
+import AdminPageHeader from '../../components/AdminPageHeader'
 
 const emptyDayForm = { date: '', dayNumber: '', label: '' }
 
@@ -159,16 +160,21 @@ export default function ManageSetup() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-gray-800">Festival Year & Days Setup</h1>
+    <div className="space-y-5">
+      <AdminPageHeader
+        icon="📅"
+        eyebrow="Setup"
+        title="Festival Year & Days Setup"
+        subtitle="Create the festival year and its days — do this first before anything else."
+      />
       {msg && (
-        <p className={`text-sm p-2 rounded ${msgIsError ? 'text-red-700 bg-red-50' : 'text-saffron-700 bg-saffron-50'}`}>
+        <p className={`text-sm p-3 rounded-xl border ${msgIsError ? 'text-red-700 bg-red-50 border-red-100' : 'text-saffron-700 bg-saffron-50 border-orange-100'}`}>
           {msg}
         </p>
       )}
 
-      <div className="card">
-        <h2 className="font-semibold text-gray-700 mb-2">1. Create a Festival Year</h2>
+      <div className="form-shell">
+        <h2 className="section-label mb-1">1️⃣ Create a Festival Year</h2>
         <form onSubmit={createYear} className="space-y-2">
           <input type="number" placeholder="Year, e.g. 2026" className="input" required
             value={yearForm.year} onChange={(e) => setYearForm({ ...yearForm, year: e.target.value })} />
@@ -187,9 +193,9 @@ export default function ManageSetup() {
         </form>
       </div>
 
-      <div className="card">
-        <h2 className="font-semibold text-gray-700 mb-2">2. Update a Festival Year</h2>
-        <p className="text-xs text-gray-400 mb-2">
+      <div className="form-shell">
+        <h2 className="section-label mb-1">2️⃣ Update a Festival Year</h2>
+        <p className="text-xs text-gray-400 -mt-1">
           Edit its dates or active status, or delete it entirely if it's empty and was created by mistake.
         </p>
         {years.length === 0 ? (
@@ -214,15 +220,15 @@ export default function ManageSetup() {
             </label>
             <div className="flex gap-2">
               <button className="btn-secondary flex-1">Save Changes</button>
-              <button type="button" onClick={deleteYear} className="text-red-500 text-sm px-3">Delete Year</button>
+              <button type="button" onClick={deleteYear} className="btn-danger-text">Delete Year</button>
             </div>
           </form>
         )}
       </div>
 
-      <div className="card">
-        <h2 className="font-semibold text-gray-700 mb-2">3. Update Opening Balance</h2>
-        <p className="text-xs text-gray-400 mb-2">
+      <div className="form-shell">
+        <h2 className="section-label mb-1">3️⃣ Update Opening Balance</h2>
+        <p className="text-xs text-gray-400 -mt-1">
           Set this once when you start digitizing — the amount remaining from all previous years' manual books, carried into this year's totals.
         </p>
         {years.length === 0 ? (
@@ -243,8 +249,8 @@ export default function ManageSetup() {
         )}
       </div>
 
-      <div className="card">
-        <h2 className="font-semibold text-gray-700 mb-2">4. Add / Edit Days for a Year</h2>
+      <div className="form-shell">
+        <h2 className="section-label mb-1">4️⃣ Add / Edit Days for a Year</h2>
 
         {years.length === 0 ? (
           <p className="text-sm text-gray-400">Create a festival year first (step 1 above) — there's nothing to add days to yet.</p>
@@ -270,18 +276,23 @@ export default function ManageSetup() {
 
             <div className="mt-4 space-y-2">
               {days.map((d) => (
-                <div key={d.id} className="flex justify-between items-center border-b border-gray-100 py-2">
-                  <div>
-                    <p className="text-sm font-medium">Day {d.dayNumber} {d.label ? `· ${d.label}` : ''}</p>
-                    <p className="text-xs text-gray-400">{d.date}</p>
+                <div key={d.id} className="flex justify-between items-center bg-orange-50/40 rounded-xl px-3 py-2.5 border border-orange-100/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-orange-100 border border-orange-200 flex items-center justify-center text-xs font-black text-orange-700 shrink-0">
+                      {d.dayNumber}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">Day {d.dayNumber} {d.label ? `· ${d.label}` : ''}</p>
+                      <p className="text-xs text-gray-400">{d.date}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => startEditDay(d)} className="text-saffron-600 text-sm">Edit</button>
-                    <button onClick={() => deleteDay(d.id)} className="text-red-500 text-sm">Delete</button>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => startEditDay(d)} className="btn-edit-text">Edit</button>
+                    <button onClick={() => deleteDay(d.id)} className="btn-danger-text">Delete</button>
                   </div>
                 </div>
               ))}
-              {days.length === 0 && <p className="text-sm text-gray-400">No days added yet.</p>}
+              {days.length === 0 && <p className="text-sm text-gray-400 text-center py-2">No days added yet.</p>}
             </div>
           </>
         )}

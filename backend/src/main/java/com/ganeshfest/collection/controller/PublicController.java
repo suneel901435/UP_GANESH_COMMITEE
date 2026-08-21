@@ -26,12 +26,14 @@ public class PublicController {
     private final VelamItemRepository velamRepo;
     private final LoanRepository loanRepo;
     private final LoanRepaymentRepository repaymentRepo;
+    private final GalleryPhotoRepository galleryRepo;
 
     public PublicController(FestivalYearRepository yearRepo, FestivalDayRepository dayRepo,
                              DonationCollectionRepository collectionRepo, ExpenseRepository expenseRepo,
                              ProgramRepository programRepo, AnnadanamSponsorRepository annadanamRepo,
                              SponsorRepository sponsorRepo, VelamItemRepository velamRepo,
-                             LoanRepository loanRepo, LoanRepaymentRepository repaymentRepo) {
+                             LoanRepository loanRepo, LoanRepaymentRepository repaymentRepo,
+                             GalleryPhotoRepository galleryRepo) {
         this.yearRepo = yearRepo;
         this.dayRepo = dayRepo;
         this.collectionRepo = collectionRepo;
@@ -42,6 +44,7 @@ public class PublicController {
         this.velamRepo = velamRepo;
         this.loanRepo = loanRepo;
         this.repaymentRepo = repaymentRepo;
+        this.galleryRepo = galleryRepo;
     }
 
     // ---- Years ----
@@ -284,6 +287,15 @@ public class PublicController {
     public List<VelamItem> velamItems(@PathVariable Integer year) {
         FestivalYear fy = getYearOrThrow(year);
         return velamRepo.findByFestivalYearIdOrderByIdAsc(fy.getId());
+    }
+
+    // ---- Photo gallery - festival photos, decoration, celebrations, grouped
+    // per year. Same pattern as velam items: just a flat list, the frontend
+    // groups/filters by category client-side. ----
+    @GetMapping("/years/{year}/gallery-photos")
+    public List<GalleryPhoto> galleryPhotos(@PathVariable Integer year) {
+        FestivalYear fy = getYearOrThrow(year);
+        return galleryRepo.findByFestivalYearIdOrderByUploadedAtDescIdDesc(fy.getId());
     }
 
     // ---- Donor / Sponsor leaderboard - public recognition, opt-in only.
